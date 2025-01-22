@@ -1,5 +1,6 @@
 # Dataset File
 dataset/
+dataset_600/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
