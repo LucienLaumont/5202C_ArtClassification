@@ -2,6 +2,7 @@ import os
 import matplotlib.pyplot as plt
 import random
 from PIL import Image
+import numpy as np
 
 # Afficher quelques images de la base
 def show_sample_images(images, title="Exemples d'images"):
@@ -24,3 +25,13 @@ def plot_pie_chart(data, title="Distribution des images par classes"):
     plt.title(title, fontsize=14)
     plt.axis("equal")
     plt.show()
+
+def ShowSamples(T):
+  plt.figure(figsize=(10, 10))
+  plt.subplots_adjust(top=1)
+  for images, labels in T.take(1):
+          for i in range(len(images)):
+                  ax = plt.subplot(10, 10, i + 1)
+                  plt.imshow(np.array(images[i]).astype("uint8"))
+                  plt.title(int(labels[i]))
+                  plt.axis("off")
