@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import random
 from PIL import Image
 import numpy as np
-from tensorflow.data import AUTOTUNE
 
 # Afficher quelques images de la base
 def show_sample_images(images, title="Exemples d'images"):
@@ -52,10 +51,7 @@ def normalize_datasets(train_dataset, validation_dataset):
     """
     normalization_layer = lambda x, y: (x / 255.0, y)  # Normalisation des pixels
 
-    train_dataset = train_dataset.map(normalization_layer, num_parallel_calls=AUTOTUNE)
-    validation_dataset = validation_dataset.map(normalization_layer, num_parallel_calls=AUTOTUNE)
-
-    train_dataset = train_dataset.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
-    validation_dataset = validation_dataset.cache().prefetch(buffer_size=AUTOTUNE)
+    train_dataset = train_dataset.map(normalization_layer)
+    validation_dataset = validation_dataset.map(normalization_layer)
 
     return train_dataset, validation_dataset
