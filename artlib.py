@@ -195,16 +195,19 @@ def build_fc_model(dropout = False):
 
     # Extraction de caractéristiques via plusieurs couches denses
     model.add(layers.Flatten())
+    
     model.add(layers.Dense(256, activation="relu"))
+    model.add(layers.BatchNormalization())
     if dropout:
-        model.add(layers.Dropout(0.3))  # Dropout pour limiter le surapprentissage
+        model.add(layers.Dropout(0.3))
 
     model.add(layers.Dense(128, activation="relu"))
-    model.add(layers.BatchNormalization())  # Normalisation pour stabiliser l'entraînement
+    model.add(layers.BatchNormalization())
     if dropout:    
         model.add(layers.Dropout(0.3))
 
     model.add(layers.Dense(64, activation="relu"))
+    model.add(layers.BatchNormalization())
     if dropout:
         model.add(layers.Dropout(0.2))
 
@@ -230,18 +233,19 @@ def build_cnn_model(dropout = False):
     model.add(Input(shape=input_shape))
     model.add(layers.Rescaling(1.0 / 255))  # Normalisation des pixels entre 0 et 1
 
-    # Extraction de caractéristiques via plusieurs couches denses
     model.add(layers.Flatten())
     model.add(layers.Dense(256, activation="relu"))
+    model.add(layers.BatchNormalization()),
     if dropout:
-        model.add(layers.Dropout(0.3))  # Dropout pour limiter le surapprentissage
+        model.add(layers.Dropout(0.3)) 
 
     model.add(layers.Dense(128, activation="relu"))
-    model.add(layers.BatchNormalization())  # Normalisation pour stabiliser l'entraînement
+    model.add(layers.BatchNormalization()) 
     if dropout:    
         model.add(layers.Dropout(0.3))
 
     model.add(layers.Dense(64, activation="relu"))
+    model.add(layers.BatchNormalization()),
     if dropout:
         model.add(layers.Dropout(0.2))
 
