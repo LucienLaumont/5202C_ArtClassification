@@ -13,12 +13,14 @@ from tensorflow.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.keras.applications import MobileNetV2
 from PIL import Image
 
+import gc
+import tensorflow.keras.backend as K
+
+
 NUM_CLASSES = 13
 INPUT_SHAPE = (224,224)
 INPUT_SHAPE_CNN = (128,128)
 DATASET_PATH = 'dataset_600'
-
-preprocess_input = tf.keras.applications.mobilenet_v2.preprocess_input
 
 # Afficher quelques images de la base
 def show_sample_images(images, title="Exemples d'images"):
@@ -269,29 +271,24 @@ def build_mobilenetv2(dropout=False, dropout_rate=0.3):
         include_top=False,
         weights="imagenet"
     )
-    base_model.trainable = False  # Geler les poids du modèle préentraîné
+    base_model.trainable = False
 
-    model = Sequential([
-        base_model,
-        layers.GlobalAveragePooling2D(),
+    model = Sequential()
 
-        layers.Dense(128, activation="relu"),
-        layers.BatchNormalization(),
-        layers.Dropout(dropout_rate) if dropout else layers.Activation("linear"),
+    model.add(base_model)
+    model.add(layers.GlobalAveragePooling2D())
+    if dropout:
+        model.add(layers.Dropout(dropout_rate))
 
-        layers.Dense(NUM_CLASSES, activation="softmax")  # Couche de sortie pour classification
-    ])
-
-    # Compilation du modèle
-    model.compile(
-        optimizer=Adam(learning_rate=0.001),
-        loss=SparseCategoricalCrossentropy(from_logits=False),
-        metrics=["accuracy"]
-    )
+    model.add(layers.Dense(128))
+    if dropout:
+        model.add(layers.Dropout(dropout_rate))
 
     return model
 
-def train_model(model_type, dataset_dictionnary, params):
+
+
+def train_model(model_type, train, valid, params):
     """
     Entraîne un modèle et retourne le modèle, les métriques et l'historique d'entraînement.
 
@@ -305,8 +302,6 @@ def train_model(model_type, dataset_dictionnary, params):
         dict: Contient les hyperparamètres et les métriques finales.
         history: L'objet `History` retourné par `model.fit()`.
     """
-
-    dataset_dictionnary["train"] = dataset_dictionnary["train_data_augmentation"] if params.get("data_augmentation", False) else dataset_dictionnary["train"]
 
     model_builders = {
         "FC": build_fc_model,
@@ -323,9 +318,10 @@ def train_model(model_type, dataset_dictionnary, params):
 
     if model_type == "TL":
         print("🔄 Prétraitement des données pour Transfer Learning...")
-        dataset_dictionnary['train'] = dataset_dictionnary['train'].map(lambda x, y: (preprocess_input(x), y))
-        dataset_dictionnary['valid'] = dataset_dictionnary['valid'].map(lambda x, y: (preprocess_input(x), y))
-
+        preprocess_input = tf.keras.applications.mobilenet_v2.preprocess_input
+        train = train.map(lambda x, y: (preprocess_input(x), y))
+        valid = valid.map(lambda x, y: (preprocess_input(x), y))
+        
     # Couche de sortie
     model.add(layers.Dense(NUM_CLASSES, activation="softmax"))  # Activation pour classification multi-classe
     
@@ -340,8 +336,8 @@ def train_model(model_type, dataset_dictionnary, params):
     print("📊 Début de l'entraînement...")
 
     history = model.fit(
-        dataset_dictionnary['train'],
-        validation_data=dataset_dictionnary['valid'],
+        train,
+        validation_data=valid,
         epochs=params['epochs'],
         verbose=1
     )
@@ -356,10 +352,11 @@ def train_model(model_type, dataset_dictionnary, params):
         "final_val_accuracy": history.history["val_accuracy"][-1]
     }
 
+
     return model, metrics, history
 
 
-def train_all_models(model_type, dataset_dictionnary, hyperparams):
+def train_all_models(model_type, train,valid,augmented_train, hyperparams):
     """
     Itère sur les combinaisons d'hyperparamètres, entraîne les modèles,
     et retourne un DataFrame avec les performances ainsi que le meilleur modèle et son historique.
@@ -383,7 +380,11 @@ def train_all_models(model_type, dataset_dictionnary, hyperparams):
     for params in hyperparams:
         print(f"🔍 Entraînement avec les paramètres : {params}")
 
-        model, metrics, history = train_model(model_type, dataset_dictionnary, params)
+        if params["data_augmentation"]:
+            model, metrics, history = train_model(model_type, augmented_train,valid, params)
+        else:
+            model, metrics, history = train_model(model_type, train,valid, params)
+
         results.append(metrics)
 
         if metrics["final_val_accuracy"] > best_accuracy:
@@ -396,4 +397,3 @@ def train_all_models(model_type, dataset_dictionnary, hyperparams):
     print(f"🏆 Meilleur modèle : {best_accuracy*100:.2f}% de final_val_accuracy")
 
     return df_results, best_model, best_history
-
