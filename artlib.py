@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix, classification_report
 from tensorflow.keras import Input, layers
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
@@ -44,83 +44,174 @@ def plot_pie_chart(data, title="Distribution des images par classes"):
     plt.axis("equal")
     plt.show()
 
-def plot_learning_curve(history):
+def plot_training_curves(history):
     """
-    Affiche la courbe d'apprentissage du modèle.
-
-    Args:
-        history: Objet `History` retourné par `model.fit()`.
-
-    Returns:
-        None (affiche les graphiques).
+    Affiche les courbes d'apprentissage (loss et accuracy) pour l'entraînement et la validation.
+    :param history: Historique d'entraînement du modèle (objet `History` retourné par `model.fit()`).
     """
-
-    epochs = range(1, len(history.history["loss"]) + 1)
-
-    # 🔹 Plot de la Loss
+    # Loss
     plt.figure(figsize=(12, 5))
     plt.subplot(1, 2, 1)
-    plt.plot(epochs, history.history["loss"], label="Train Loss")
-    plt.plot(epochs, history.history["val_loss"], label="Validation Loss")
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss")
-    plt.title("Évolution de la Loss")
+    plt.plot(history.history['loss'], label='Train Loss')
+    plt.plot(history.history['val_loss'], label='Validation Loss')
+    plt.title('Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
     plt.legend()
 
-    # 🔹 Plot de l'Accuracy
+    # Accuracy
     plt.subplot(1, 2, 2)
-    plt.plot(epochs, history.history["accuracy"], label="Train Accuracy")
-    plt.plot(epochs, history.history["val_accuracy"], label="Validation Accuracy")
-    plt.xlabel("Epochs")
-    plt.ylabel("Accuracy")
-    plt.title("Évolution de l'Accuracy")
+    plt.plot(history.history['accuracy'], label='Train Accuracy')
+    plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+    plt.title('Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
     plt.legend()
 
     plt.show()
 
 
-def plot_class_performance(model, dataset, class_names):
+def plot_confusion_matrix(model, dataset, class_names):
     """
-    Affiche la précision, le recall et le F1-score pour chaque classe.
-
-    Args:
-        model: Modèle entraîné.
-        dataset: Dataset de test (ou validation) contenant les features et labels.
-        class_names (list): Liste des noms des classes.
-
-    Returns:
-        None (affiche le graphique).
+    Affiche la matrice de confusion pour un modèle et un dataset donnés.
+    :param model: Modèle entraîné.
+    :param dataset: Dataset (par exemple, `valid`).
+    :param class_names: Liste des noms des classes.
     """
+    # Prédictions
+    y_pred = model.predict(dataset)
+    y_pred = np.argmax(y_pred, axis=1)
 
-    # Récupérer les vraies étiquettes et les prédictions
-    y_true = np.concatenate([y.numpy() for _, y in dataset])
-    y_pred_probs = model.predict(dataset)
-    y_pred = np.argmax(y_pred_probs, axis=1)
+    # Vraies étiquettes
+    y_true = np.concatenate([y for x, y in dataset], axis=0)
+    y_true = np.argmax(y_true, axis=1)
 
-    # Calcul du rapport de classification
+    # Matrice de confusion
+    conf_matrix = confusion_matrix(y_true, y_pred)
+    plt.figure(figsize=(10, 7))
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names)
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title('Confusion Matrix')
+    plt.show()
+
+def plot_confusion_matrix(model, dataset, class_names):
+    """
+    Affiche la matrice de confusion pour un modèle et un dataset donnés.
+    
+    :param model: Modèle entraîné.
+    :param dataset: Dataset (par exemple, `valid`).
+    :param class_names: Liste des noms des classes.
+    """
+    # Prédictions
+    y_pred = model.predict(dataset)
+    y_pred = np.argmax(y_pred, axis=1)
+
+    # Vraies étiquettes
+    y_true = np.concatenate([y for x, y in dataset], axis=0)
+    print(f"Forme initiale de y_true : {y_true.shape}")
+    
+    # Si y_true est one-hot, appliquer np.argmax
+    if y_true.ndim > 1 and y_true.shape[1] > 1:
+        print("Les étiquettes sont en one-hot encoding, application de np.argmax.")
+        y_true = np.argmax(y_true, axis=1)
+    elif y_true.ndim == 1:
+        print("Les étiquettes sont déjà sous forme d'entiers.")
+    else:
+        raise ValueError(f"Forme inattendue de y_true : {y_true.shape}")
+
+    # Matrice de confusion
+    conf_matrix = confusion_matrix(y_true, y_pred)
+    plt.figure(figsize=(10, 7))
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names)
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title('Confusion Matrix')
+    plt.show()
+
+def plot_classification_report(model, dataset, class_names):
+    """
+    Affiche un rapport de classification (précision, rappel, F1-score) pour chaque classe.
+    :param model: Modèle entraîné.
+    :param dataset: Dataset (par exemple, `valid`).
+    :param class_names: Liste des noms des classes.
+    """
+    # Prédictions
+    y_pred = model.predict(dataset)
+    y_pred = np.argmax(y_pred, axis=1)
+
+    # Vraies étiquettes
+    y_true = np.concatenate([y for x, y in dataset], axis=0)
+
+    # Rapport de classification
+    report = classification_report(y_true, y_pred, target_names=class_names)
+    print("Rapport de classification:")
+    print(report)
+
+
+def plot_precision_by_class(model, dataset, class_names):
+    """
+    Affiche un graphique de précision par classe.
+    :param model: Modèle entraîné.
+    :param dataset: Dataset (par exemple, `valid`).
+    :param class_names: Liste des noms des classes.
+    """
+    # Prédictions
+    y_pred = model.predict(dataset)
+    y_pred = np.argmax(y_pred, axis=1)
+
+    # Vraies étiquettes
+    y_true = np.concatenate([y for x, y in dataset], axis=0)
+
+    # Rapport de classification
     report = classification_report(y_true, y_pred, target_names=class_names, output_dict=True)
+    precisions = [report[cls]['precision'] for cls in class_names]
 
-    # Extraction des métriques par classe
-    precision = [report[cls]["precision"] for cls in class_names]
-    recall = [report[cls]["recall"] for cls in class_names]
-    f1_score = [report[cls]["f1-score"] for cls in class_names]
+    # Graphique
+    plt.figure(figsize=(12, 6))  # Augmentez la taille de la figure
+    plt.bar(class_names, precisions, width=0.6)  # Augmentez la largeur des barres
+    plt.title('Précision par classe')
+    plt.xlabel('Classe')
+    plt.ylabel('Précision')
+    plt.ylim(0, 1)
 
-    # Tracé du graphique
-    x = np.arange(len(class_names))
-    width = 0.25  # Largeur des barres
+    # Inclinez les étiquettes des classes
+    plt.xticks(rotation=45, ha='right', fontsize=10)  # Ajustez l'angle et la taille de police
 
-    plt.figure(figsize=(12, 6))
-    plt.bar(x - width, precision, width, label="Précision", alpha=0.8)
-    plt.bar(x, recall, width, label="Recall", alpha=0.8)
-    plt.bar(x + width, f1_score, width, label="F1-score", alpha=0.8)
-
-    plt.xlabel("Classes")
-    plt.ylabel("Score")
-    plt.title("Performance du modèle par classe")
-    plt.xticks(ticks=x, labels=class_names, rotation=45)
-    plt.legend()
+    plt.tight_layout()  # Évite les chevauchements
     plt.show()
 
+def plot_recall_by_class(model, dataset, class_names):
+    """
+    Affiche un graphique de rappel par classe.
+    :param model: Modèle entraîné.
+    :param dataset: Dataset (par exemple, `valid`).
+    :param class_names: Liste des noms des classes.
+    """
+    # Prédictions
+    y_pred = model.predict(dataset)
+    y_pred = np.argmax(y_pred, axis=1)
+
+    # Vraies étiquettes
+    y_true = np.concatenate([y for x, y in dataset], axis=0)
+
+    # Rapport de classification
+    report = classification_report(y_true, y_pred, target_names=class_names, output_dict=True)
+    recalls = [report[cls]['recall'] for cls in class_names]
+
+    # Graphique
+    plt.figure(figsize=(12, 6))  # Augmentez la taille de la figure
+    plt.bar(class_names, recalls, width=0.6)  # Augmentez la largeur des barres
+    plt.title('Rappel par classe')
+    plt.xlabel('Classe')
+    plt.ylabel('Rappel')
+    plt.ylim(0, 1)
+
+    # Inclinez les étiquettes des classes
+    plt.xticks(rotation=45, ha='right', fontsize=10)
+
+    plt.tight_layout()  # Ajuste automatiquement la mise en page
+    plt.show()
 
 def sample_images_class_count():
      
@@ -166,8 +257,8 @@ def generate_hyperparameter_combinations(learning_rates,epochs):
     Returns:
         list[dict]: Liste de dictionnaires contenant les combinaisons d'hyperparamètres.
     """
-    dropout_options = [True, False]
-    data_augmentation = [True, False]
+    dropout_options = [True,False]
+    data_augmentation = [True,False]
     combinations = list(itertools.product(epochs, learning_rates, dropout_options, data_augmentation))
     return [
         {"epochs" : ep,"learning_rate": lr, "dropout": do, "data_augmentation": da}
