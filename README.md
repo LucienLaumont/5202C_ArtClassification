@@ -20,7 +20,7 @@ L'objectif est de classifier des oeuvres d'art selon leur mouvement artistique e
 
 Le dataset a été constitué manuellement sur environ 2 semaines (~15 heures de recherche). Il contient **7 800 images** réparties en **13 mouvements artistiques** :
 
-| Mouvement | Mouvement | Mouvement |
+| Mouvement |  |  |
 |---|---|---|
 | Academic Art | Art Nouveau | Baroque |
 | Expressionnisme | Art Japonais | Néoclassicisme |
